@@ -2407,7 +2407,6 @@ static int mv88e6xxx_set_port_mode_normal(struct mv88e6xxx_chip *chip, int port)
 
 static int mv88e6xxx_set_port_mode_dsa(struct mv88e6xxx_chip *chip, int port)
 {
-	pr_info("OWL: %s: 01-1, port = %d\n", __func__, port);
 	return mv88e6xxx_set_port_mode(chip, port, MV88E6XXX_FRAME_MODE_DSA,
 				       MV88E6XXX_EGRESS_MODE_UNMODIFIED,
 				       MV88E6XXX_PORT_ETH_TYPE_DEFAULT);

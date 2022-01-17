@@ -532,10 +532,10 @@ u8 mv88e6390x_serdes_get_lane(struct mv88e6xxx_chip *chip, int port)
 u8 mv88e6393x_serdes_get_lane(struct mv88e6xxx_chip *chip, int port)
 {
 	u8 cmode = chip->ports[port].cmode;
-	int lane = -ENODEV;
+	int lane = 0;
 
 	if (port != 0 && port != 9 && port != 10)
-		return -EOPNOTSUPP;
+		return 0;
 
 	if (cmode == MV88E6XXX_PORT_STS_CMODE_1000BASEX ||
 	    cmode == MV88E6XXX_PORT_STS_CMODE_SGMII ||
