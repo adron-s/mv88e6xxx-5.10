@@ -323,6 +323,8 @@ struct mv88e6xxx_chip {
 	struct kthread_worker *kworker;
 	struct kthread_delayed_work irq_poll_work;
 
+	bool strict_cpu_mode;
+
 	/* GPIO resources */
 	u8 gpio_data[2];
 

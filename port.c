@@ -912,6 +912,8 @@ int mv88e6352_port_set_egress_floods(struct mv88e6xxx_chip *chip, int port,
 	int err;
 	u16 reg;
 
+	pr_info("OWL: %s: port = %d, unicast = %d, multicast = %d\n", __func__,
+		port, unicast, multicast);
 	err = mv88e6xxx_port_read(chip, port, MV88E6XXX_PORT_CTL0, &reg);
 	if (err)
 		return err;
@@ -927,6 +929,7 @@ int mv88e6352_port_set_egress_floods(struct mv88e6xxx_chip *chip, int port,
 	else
 		reg |= MV88E6352_PORT_CTL0_EGRESS_FLOODS_NO_UNKNOWN_DA;
 
+	pr_info("OWL: %s:  MV88E6XXX_PORT_CTL0 reg = 0x%x\n", __func__, reg);
 	return mv88e6xxx_port_write(chip, port, MV88E6XXX_PORT_CTL0, reg);
 }
 
@@ -1206,7 +1209,16 @@ int mv88e6xxx_port_set_map_da(struct mv88e6xxx_chip *chip, int port)
 	if (err)
 		return err;
 
-	reg |= MV88E6XXX_PORT_CTL2_MAP_DA;
+	if (likely(chip->strict_cpu_mode)) {
+		/*  When this bit is set to a one, normal switch operation occurs where
+				a frame’s DA is used to direct the frame out of the correct ports.
+				When this bit is cleared to a zero, the frame will be sent out of the ports
+				defined by EgressFloods (port offset 0x04) even if the DA is found in the
+				address database. */
+		reg &= ~MV88E6XXX_PORT_CTL2_MAP_DA;
+	} else {
+		reg |= MV88E6XXX_PORT_CTL2_MAP_DA;
+	}
 
 	return mv88e6xxx_port_write(chip, port, MV88E6XXX_PORT_CTL2, reg);
 }
