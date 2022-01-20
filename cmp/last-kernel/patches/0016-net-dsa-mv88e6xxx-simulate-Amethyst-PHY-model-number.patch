@@ -1,0 +1,34 @@
+From c5d015b0e09700bfd8ec120cc8ebe25f6fc5c32e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marek=20Beh=C3=BAn?= <kabel@kernel.org>
+Date: Tue, 20 Apr 2021 09:54:02 +0200
+Subject: [PATCH 16/70] net: dsa: mv88e6xxx: simulate Amethyst PHY model number
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Amethyst internal PHYs also report empty model number in MII_PHYSID2.
+
+Fill in switch product number, as is done for Topaz and Peridot.
+
+Signed-off-by: Marek Behún <kabel@kernel.org>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/dsa/mv88e6xxx/chip.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
+index 860dca41cf4b..9c4f8517c34b 100644
+--- a/drivers/net/dsa/mv88e6xxx/chip.c
++++ b/drivers/net/dsa/mv88e6xxx/chip.c
+@@ -3165,6 +3165,7 @@ static int mv88e6xxx_setup(struct dsa_switch *ds)
+ static const u16 family_prod_id_table[] = {
+ 	[MV88E6XXX_FAMILY_6341] = MV88E6XXX_PORT_SWITCH_ID_PROD_6341,
+ 	[MV88E6XXX_FAMILY_6390] = MV88E6XXX_PORT_SWITCH_ID_PROD_6390,
++	[MV88E6XXX_FAMILY_6393] = MV88E6XXX_PORT_SWITCH_ID_PROD_6393X,
+ };
+ 
+ static int mv88e6xxx_mdio_read(struct mii_bus *bus, int phy, int reg)
+-- 
+2.25.1
+

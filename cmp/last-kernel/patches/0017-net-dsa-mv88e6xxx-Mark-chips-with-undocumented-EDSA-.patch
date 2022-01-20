@@ -1,0 +1,388 @@
+From 670bb80f8196ab2189e7f51473da236450dca1aa Mon Sep 17 00:00:00 2001
+From: Tobias Waldekranz <tobias@waldekranz.com>
+Date: Tue, 20 Apr 2021 20:53:07 +0200
+Subject: [PATCH 17/70] net: dsa: mv88e6xxx: Mark chips with undocumented EDSA
+ tag support
+
+All devices are capable of using regular DSA tags. Support for
+Ethertyped DSA tags sort into three categories:
+
+1. No support. Older chips fall into this category.
+
+2. Full support. Datasheet explicitly supports configuring the CPU
+   port to receive FORWARDs with a DSA tag.
+
+3. Undocumented support. Datasheet lists the configuration from
+   category 2 as "reserved for future use", but does empirically
+   behave like a category 2 device.
+
+So, instead of listing the one true protocol that should be used by a
+particular chip, specify the level of support for EDSA (support for
+regular DSA is implicit on all chips). As before, we use EDSA for all
+chips that fully supports it.
+
+In upcoming changes, we will use this information to support
+dynamically changing the tag protocol.
+
+Signed-off-by: Tobias Waldekranz <tobias@waldekranz.com>
+Reviewed-by: Vladimir Oltean <olteanv@gmail.com>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/dsa/mv88e6xxx/chip.c | 60 ++++++++++++++------------------
+ drivers/net/dsa/mv88e6xxx/chip.h | 21 ++++++++++-
+ 2 files changed, 46 insertions(+), 35 deletions(-)
+
+diff --git a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
+index 9c4f8517c34b..6fbc1eed05c1 100644
+--- a/drivers/net/dsa/mv88e6xxx/chip.c
++++ b/drivers/net/dsa/mv88e6xxx/chip.c
+@@ -2531,10 +2531,10 @@ static int mv88e6xxx_setup_port_mode(struct mv88e6xxx_chip *chip, int port)
+ 		return mv88e6xxx_set_port_mode_normal(chip, port);
+ 
+ 	/* Setup CPU port mode depending on its supported tag format */
+-	if (chip->info->tag_protocol == DSA_TAG_PROTO_DSA)
++	if (chip->tag_protocol == DSA_TAG_PROTO_DSA)
+ 		return mv88e6xxx_set_port_mode_dsa(chip, port);
+ 
+-	if (chip->info->tag_protocol == DSA_TAG_PROTO_EDSA)
++	if (chip->tag_protocol == DSA_TAG_PROTO_EDSA)
+ 		return mv88e6xxx_set_port_mode_edsa(chip, port);
+ 
+ 	return -EINVAL;
+@@ -4786,7 +4786,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ops = &mv88e6085_ops,
+ 	},
+ 
+@@ -4807,7 +4806,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g1_irqs = 8,
+ 		.atu_move_port_mask = 0xf,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ops = &mv88e6095_ops,
+ 	},
+ 
+@@ -4830,7 +4828,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6097_ops,
+ 	},
+ 
+@@ -4853,7 +4851,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6123_ops,
+ 	},
+ 
+@@ -4874,7 +4872,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g1_irqs = 9,
+ 		.atu_move_port_mask = 0xf,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ops = &mv88e6131_ops,
+ 	},
+ 
+@@ -4898,7 +4895,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g2_irqs = 10,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6141_ops,
+ 	},
+ 
+@@ -4921,7 +4918,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6161_ops,
+ 	},
+@@ -4945,7 +4942,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6165_ops,
+ 	},
+@@ -4969,7 +4965,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6171_ops,
+ 	},
+ 
+@@ -4993,7 +4989,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6172_ops,
+ 	},
+ 
+@@ -5016,7 +5012,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6175_ops,
+ 	},
+ 
+@@ -5040,7 +5036,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6176_ops,
+ 	},
+ 
+@@ -5061,7 +5057,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g1_irqs = 8,
+ 		.atu_move_port_mask = 0xf,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6185_ops,
+ 	},
+ 
+@@ -5079,7 +5075,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.phy_base_addr = 0x0,
+ 		.global1_addr = 0x1b,
+ 		.global2_addr = 0x1c,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.age_time_coeff = 3750,
+ 		.g1_irqs = 9,
+ 		.g2_irqs = 14,
+@@ -5109,7 +5104,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ops = &mv88e6190x_ops,
+ 	},
+ 
+@@ -5132,7 +5126,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6191_ops,
+ 	},
+@@ -5155,7 +5148,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6393x_ops,
+ 	},
+@@ -5178,7 +5170,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6393x_ops,
+ 	},
+@@ -5205,7 +5196,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g2_irqs = 10,
+ 		.atu_move_port_mask = 0xf,
+ 		.dual_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6250_ops,
+ 	},
+@@ -5230,7 +5220,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6240_ops,
+ 	},
+@@ -5252,7 +5242,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g2_irqs = 10,
+ 		.atu_move_port_mask = 0xf,
+ 		.dual_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6250_ops,
+ 	},
+@@ -5276,7 +5265,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6290_ops,
+ 	},
+@@ -5301,7 +5289,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6320_ops,
+ 	},
+@@ -5325,7 +5313,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g2_irqs = 10,
+ 		.atu_move_port_mask = 0xf,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6321_ops,
+ 	},
+@@ -5350,7 +5338,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.g2_irqs = 10,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6341_ops,
+ 	},
+@@ -5374,7 +5362,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6350_ops,
+ 	},
+ 
+@@ -5397,7 +5385,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ops = &mv88e6351_ops,
+ 	},
+ 
+@@ -5421,7 +5409,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0xf,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_EDSA,
++		.edsa_support = MV88E6XXX_EDSA_SUPPORTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6352_ops,
+ 	},
+@@ -5445,7 +5433,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
++		.edsa_support = MV88E6XXX_EDSA_UNDOCUMENTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6390_ops,
+ 	},
+@@ -5469,7 +5457,7 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
++		.edsa_support = MV88E6XXX_EDSA_UNDOCUMENTED,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6390x_ops,
+ 	},
+@@ -5492,7 +5480,6 @@ static const struct mv88e6xxx_info mv88e6xxx_table[] = {
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
+-		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6393x_ops,
+ 	},
+@@ -5561,7 +5548,7 @@ static enum dsa_tag_protocol mv88e6xxx_get_tag_protocol(struct dsa_switch *ds,
+ {
+ 	struct mv88e6xxx_chip *chip = ds->priv;
+ 
+-	return chip->info->tag_protocol;
++	return chip->tag_protocol;
+ }
+ 
+ static int mv88e6xxx_port_mdb_add(struct dsa_switch *ds, int port,
+@@ -6206,6 +6193,11 @@ static int mv88e6xxx_probe(struct mdio_device *mdiodev)
+ 	if (err)
+ 		goto out;
+ 
++	if (chip->info->edsa_support == MV88E6XXX_EDSA_SUPPORTED)
++		chip->tag_protocol = DSA_TAG_PROTO_EDSA;
++	else
++		chip->tag_protocol = DSA_TAG_PROTO_DSA;
++
+ 	mv88e6xxx_phy_init(chip);
+ 
+ 	if (chip->info->ops->get_eeprom) {
+diff --git a/drivers/net/dsa/mv88e6xxx/chip.h b/drivers/net/dsa/mv88e6xxx/chip.h
+index bce6e0dc8535..4f116f73a74b 100644
+--- a/drivers/net/dsa/mv88e6xxx/chip.h
++++ b/drivers/net/dsa/mv88e6xxx/chip.h
+@@ -96,6 +96,22 @@ enum mv88e6xxx_family {
+ 	MV88E6XXX_FAMILY_6393,	/* 6191X 6193X 6393X */
+ };
+ 
++/**
++ * enum mv88e6xxx_edsa_support - Ethertype DSA tag support level
++ * @MV88E6XXX_EDSA_UNSUPPORTED:  Device has no support for EDSA tags
++ * @MV88E6XXX_EDSA_UNDOCUMENTED: Documentation indicates that
++ *                               egressing FORWARD frames with an EDSA
++ *                               tag is reserved for future use, but
++ *                               empirical data shows that this mode
++ *                               is supported.
++ * @MV88E6XXX_EDSA_SUPPORTED:    EDSA tags are fully supported.
++ */
++enum mv88e6xxx_edsa_support {
++	MV88E6XXX_EDSA_UNSUPPORTED = 0,
++	MV88E6XXX_EDSA_UNDOCUMENTED,
++	MV88E6XXX_EDSA_SUPPORTED,
++};
++
+ struct mv88e6xxx_ops;
+ 
+ struct mv88e6xxx_info {
+@@ -133,7 +149,7 @@ struct mv88e6xxx_info {
+ 	 */
+ 	bool dual_chip;
+ 
+-	enum dsa_tag_protocol tag_protocol;
++	enum mv88e6xxx_edsa_support edsa_support;
+ 
+ 	/* Mask for FromPort and ToPort value of PortVec used in ATU Move
+ 	 * operation. 0 means that the ATU Move operation is not supported.
+@@ -261,6 +277,9 @@ struct mv88e6xxx_region_priv {
+ struct mv88e6xxx_chip {
+ 	const struct mv88e6xxx_info *info;
+ 
++	/* Currently configured tagging protocol */
++	enum dsa_tag_protocol tag_protocol;
++
+ 	/* The dsa_switch this private structure is related to */
+ 	struct dsa_switch *ds;
+ 
+-- 
+2.25.1
+

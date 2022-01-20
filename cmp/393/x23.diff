@@ -1,0 +1,27 @@
+--- 5.15.c	2022-01-17 13:16:30.582399651 +0200
++++ ./5.10.c	2022-01-17 13:17:19.993519068 +0200
+@@ -8,15 +8,13 @@
+ 	.phy_read = mv88e6xxx_g2_smi_phy_read,
+ 	.phy_write = mv88e6xxx_g2_smi_phy_write,
+ 	.port_set_link = mv88e6xxx_port_set_link,
+-	.port_sync_link = mv88e6xxx_port_sync_link,
+ 	.port_set_rgmii_delay = mv88e6390_port_set_rgmii_delay,
+ 	.port_set_speed_duplex = mv88e6393x_port_set_speed_duplex,
+ 	.port_max_speed_mode = mv88e6393x_port_max_speed_mode,
+ 	.port_tag_remap = mv88e6390_port_tag_remap,
+ 	.port_set_policy = mv88e6393x_port_set_policy,
+ 	.port_set_frame_mode = mv88e6351_port_set_frame_mode,
+-	.port_set_ucast_flood = mv88e6352_port_set_ucast_flood,
+-	.port_set_mcast_flood = mv88e6352_port_set_mcast_flood,
++	.port_set_egress_floods = mv88e6352_port_set_egress_floods,
+ 	.port_set_ether_type = mv88e6393x_port_set_ether_type,
+ 	.port_set_jumbo_size = mv88e6165_port_set_jumbo_size,
+ 	.port_egress_rate_limiting = mv88e6097_port_egress_rate_limiting,
+@@ -80,6 +78,7 @@
+ 		.atu_move_port_mask = 0x1f,
+ 		.pvt = true,
+ 		.multi_chip = true,
++		.tag_protocol = DSA_TAG_PROTO_DSA,
+ 		.ptp_support = true,
+ 		.ops = &mv88e6393x_ops,
+ 	},
