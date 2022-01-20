@@ -1271,8 +1271,6 @@ static int mv88e6xxx_port_vlan_map(struct mv88e6xxx_chip *chip, int port)
 	/* prevent frames from going back out of the port they came in on */
 	output_ports &= ~BIT(port);
 
-	pr_info("OWL: %s, port = %d, output_ports = 0x%x\n", __func__, port, output_ports);
-
 	return mv88e6xxx_port_set_vlan_map(chip, port, output_ports);
 }
 
@@ -2126,11 +2124,6 @@ static int mv88e6xxx_port_fdb_add(struct dsa_switch *ds, int port,
 	int err;
 
 	vid = vid ? : 1;
-	pr_info("OWL: %s, port = %d, mac = %02x:%02x:%02x:%02x:%02x:%02x, vid = %d\n",
-			__func__, port,
-			addr[0], addr[1], addr[2],
-			addr[3], addr[4], addr[5],
-			vid);
 	mv88e6xxx_reg_lock(chip);
 	err = mv88e6xxx_port_db_load_purge(chip, port, addr, vid,
 					   MV88E6XXX_G1_ATU_DATA_STATE_UC_STATIC);
@@ -2181,11 +2174,6 @@ static int mv88e6xxx_port_db_dump_fid(struct mv88e6xxx_chip *chip,
 		is_static = (addr.state ==
 			     MV88E6XXX_G1_ATU_DATA_STATE_UC_STATIC);
 		err = cb(addr.mac, vid, is_static, data);
-		pr_info("OWL: %s, port = %d, mac = %02x:%02x:%02x:%02x:%02x:%02x, vid = %d, is_static = %d\n",
-			__func__, port,
-			addr.mac[0], addr.mac[1], addr.mac[2],
-			addr.mac[3], addr.mac[4], addr.mac[5],
-			vid, is_static);
 		if (err)
 			return err;
 	} while (!is_broadcast_ether_addr(addr.mac));
@@ -2236,11 +2224,6 @@ static int mv88e6xxx_port_fdb_dump(struct dsa_switch *ds, int port,
 	struct mv88e6xxx_chip *chip = ds->priv;
 	int err;
 
-	pr_info("OWL: %s, port = %d\n", __func__, port);
-	if (port == 10) {
-		port = 0;
-		pr_info("OWL: Hack! %s, port = %d\n", __func__, port);
-	}
 	mv88e6xxx_reg_lock(chip);
 	err = mv88e6xxx_port_db_dump(chip, port, cb, data);
 	mv88e6xxx_reg_unlock(chip);
@@ -2639,7 +2622,6 @@ static int mv88e6xxx_port_set_learn_disabled(struct mv88e6xxx_chip *chip, int po
 
 	err = mv88e6xxx_port_write(chip, port, MV88E6XXX_PORT_BASE_VLAN,
 				   reg);
-	pr_info("OWL: %s: port = %d, MV88E6XXX_PORT_BASE_VLAN = 0x%x\n", __func__, port, reg);
 
 	return err;
 }
@@ -2751,7 +2733,6 @@ static int mv88e6xxx_setup_port(struct mv88e6xxx_chip *chip, int port)
 
 	err = mv88e6xxx_port_write(chip, port, MV88E6XXX_PORT_ASSOC_VECTOR,
 				   reg);
-	pr_info("OWL: %s, port = %d, PORT_ASSOC_VECTOR reg = 0x%x\n", __func__, port, reg);
 	if (err)
 		return err;
 
@@ -5610,7 +5591,6 @@ static void mv88e6xxx_set_strict_cpu_mode(struct mv88e6xxx_chip *chip)
 	list_for_each_entry(dp, &dst->ports, list) {
 		dp->strict_cpu_mode = val;
 	}
-	pr_info("OWL: %s: strict_cpu_mode = %d\n", __func__, val);
 }
 
 static int mv88e6xxx_register_switch(struct mv88e6xxx_chip *chip)
