@@ -1,6 +1,6 @@
 diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
---- a/drivers/net/dsa/mv88e6xxx/chip.c	2022-01-20 08:19:34.897902121 +0200
-+++ b/drivers/net/dsa/mv88e6xxx/chip.c	2022-01-20 08:11:18.032762795 +0200
+--- a/drivers/net/dsa/mv88e6xxx/chip.c	2022-02-16 08:12:35.822078020 +0200
++++ b/drivers/net/dsa/mv88e6xxx/chip.c	2022-02-16 08:03:19.505837416 +0200
 @@ -485,12 +485,12 @@
  					  struct phylink_link_state *state)
  {
@@ -240,7 +240,19 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  
  	/* Disable ATU member violation interrupt */
  	reg |= MV88E6XXX_PORT_ASSOC_VECTOR_IGNORE_WRONG;
-@@ -3016,6 +3085,7 @@
+@@ -2765,6 +2834,11 @@
+ 	struct mv88e6xxx_chip *chip = ds->priv;
+ 	int err;
+ 
++	if (likely(chip->strict_cpu_mode && dsa_is_user_port(ds, port))) {
++		struct net_device *slave = dsa_to_port(ds, port)->slave;
++		slave->features &= ~NETIF_F_HW_VLAN_CTAG_FILTER;
++	}
++
+ 	mv88e6xxx_reg_lock(chip);
+ 	err = mv88e6xxx_serdes_power(chip, port, true);
+ 	mv88e6xxx_reg_unlock(chip);
+@@ -3016,6 +3090,7 @@
  static const u16 family_prod_id_table[] = {
  	[MV88E6XXX_FAMILY_6341] = MV88E6XXX_PORT_SWITCH_ID_PROD_6341,
  	[MV88E6XXX_FAMILY_6390] = MV88E6XXX_PORT_SWITCH_ID_PROD_6390,
@@ -248,7 +260,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  };
  
  static int mv88e6xxx_mdio_read(struct mii_bus *bus, int phy, int reg)
-@@ -3071,7 +3141,10 @@
+@@ -3071,7 +3146,10 @@
  
  	if (external) {
  		mv88e6xxx_reg_lock(chip);
@@ -260,7 +272,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  		mv88e6xxx_reg_unlock(chip);
  
  		if (err)
-@@ -4505,6 +4578,68 @@
+@@ -4505,6 +4583,68 @@
  	.phylink_validate = mv88e6390x_phylink_validate,
  };
  
@@ -329,7 +341,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  static const struct mv88e6xxx_info mv88e6xxx_table[] = {
  	[MV88E6085] = {
  		.prod_num = MV88E6XXX_PORT_SWITCH_ID_PROD_6085,
-@@ -5166,6 +5301,28 @@
+@@ -5166,6 +5306,28 @@
  		.ptp_support = true,
  		.ops = &mv88e6390x_ops,
  	},
@@ -358,7 +370,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  };
  
  static const struct mv88e6xxx_info *mv88e6xxx_lookup_info(unsigned int prod_num)
-@@ -5354,6 +5511,11 @@
+@@ -5354,6 +5516,11 @@
  	struct mv88e6xxx_chip *chip = ds->priv;
  	int err = -EOPNOTSUPP;
  
@@ -370,7 +382,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  	mv88e6xxx_reg_lock(chip);
  	if (chip->info->ops->port_set_egress_floods)
  		err = chip->info->ops->port_set_egress_floods(chip, port,
-@@ -5420,6 +5582,17 @@
+@@ -5420,6 +5587,17 @@
  	.devlink_info_get	= mv88e6xxx_devlink_info_get,
  };
  
@@ -388,7 +400,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  static int mv88e6xxx_register_switch(struct mv88e6xxx_chip *chip)
  {
  	struct device *dev = chip->dev;
-@@ -5436,7 +5609,10 @@
+@@ -5436,7 +5614,10 @@
  	ds->ops = &mv88e6xxx_switch_ops;
  	ds->ageing_time_min = chip->info->age_time_coeff;
  	ds->ageing_time_max = chip->info->age_time_coeff * U8_MAX;
@@ -400,7 +412,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  
  	dev_set_drvdata(dev, ds);
  
-@@ -5517,6 +5693,13 @@
+@@ -5517,6 +5698,13 @@
  		goto out;
  	}
  
@@ -414,7 +426,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  	chip->info = compat_info;
  
  	err = mv88e6xxx_smi_init(chip, mdiodev->bus, mdiodev->addr);
-@@ -5534,7 +5717,6 @@
+@@ -5534,7 +5722,6 @@
  	err = mv88e6xxx_detect(chip);
  	if (err)
  		goto out;
@@ -422,7 +434,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  	mv88e6xxx_phy_init(chip);
  
  	if (chip->info->ops->get_eeprom) {
-@@ -5544,7 +5726,6 @@
+@@ -5544,7 +5731,6 @@
  		else
  			chip->eeprom_len = pdata->eeprom_len;
  	}
@@ -430,7 +442,7 @@ diff -rNu a/drivers/net/dsa/mv88e6xxx/chip.c b/drivers/net/dsa/mv88e6xxx/chip.c
  	mv88e6xxx_reg_lock(chip);
  	err = mv88e6xxx_switch_reset(chip);
  	mv88e6xxx_reg_unlock(chip);
-@@ -5598,6 +5779,8 @@
+@@ -5598,6 +5784,8 @@
  	if (err)
  		goto out_mdio;
  
