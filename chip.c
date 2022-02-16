@@ -1638,6 +1638,9 @@ mv88e6xxx_port_vlan_prepare(struct dsa_switch *ds, int port,
 	struct mv88e6xxx_chip *chip = ds->priv;
 	int err;
 
+	if (likely(chip->strict_cpu_mode))
+		return 0;
+
 	if (!chip->info->max_vid)
 		return -EOPNOTSUPP;
 
