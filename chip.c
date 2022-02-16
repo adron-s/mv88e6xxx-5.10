@@ -2834,6 +2834,11 @@ static int mv88e6xxx_port_enable(struct dsa_switch *ds, int port,
 	struct mv88e6xxx_chip *chip = ds->priv;
 	int err;
 
+	if (likely(chip->strict_cpu_mode && dsa_is_user_port(ds, port))) {
+		struct net_device *slave = dsa_to_port(ds, port)->slave;
+		slave->features &= ~NETIF_F_HW_VLAN_CTAG_FILTER;
+	}
+
 	mv88e6xxx_reg_lock(chip);
 	err = mv88e6xxx_serdes_power(chip, port, true);
 	mv88e6xxx_reg_unlock(chip);
